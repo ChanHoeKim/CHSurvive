@@ -6,6 +6,7 @@
 #include "Character/CHPlayerCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+
 void UCHAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
@@ -34,4 +35,9 @@ void UCHAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	bShouldSprint = bShouldMove && GroundSpeed > 600.f;
 	
 	bIsFalling = MovementComponent->IsFalling();
+}
+
+void UCHAnimInstance::UpdateIdle()
+{
+	CurrentWeapon = Character->GetCurrentWeaponType();
 }

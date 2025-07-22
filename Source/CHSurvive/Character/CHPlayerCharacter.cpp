@@ -21,6 +21,7 @@
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
 #include "EnhancedInputSubsystems.h"
+#include "Animation/CHAnimInstance.h"
 #include "Component/CHCombatComponent.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -214,6 +215,40 @@ void ACHPlayerCharacter::Interact()
 	else
 	{
 		ServerInteract();
+	}
+}
+
+void ACHPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, CurrentWeapon);
+}
+
+void ACHPlayerCharacter::OnRep_ChangeWeaponType()
+{
+	UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
+	if (Anim)
+	{
+		Anim->UpdateIdle();
+	}
+}
+
+void ACHPlayerCharacter::ChangeWeaponType(EWeaponType WeaponType)
+{
+	if (GEngine)
+	{
+			GEngine->AddOnScreenDebugMessage(
+					-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+						5.0f, // Duration (화면에 표시될 시간, 초 단위)
+							FColor::Green, // 텍스트 색상
+								TEXT("Click") // 출력할 메시지
+								);
+	}
+	if (HasAuthority())
+	{
+		CurrentWeapon = WeaponType;
+		OnRep_ChangeWeaponType();
 	}
 }
 

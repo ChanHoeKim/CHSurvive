@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CHDefine.h"
 #include "Animation/AnimInstance.h"
 #include "CHAnimInstance.generated.h"
 
@@ -22,6 +23,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category="Reference")
 	TObjectPtr<UCharacterMovementComponent> MovementComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EWeaponType CurrentWeapon = EWeaponType::None; 
+
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement Data")
@@ -39,11 +44,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement Data")
 	uint8 bIsFalling:1;
 
-	
-
-	
 public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
-	
+	void UpdateIdle();
 };

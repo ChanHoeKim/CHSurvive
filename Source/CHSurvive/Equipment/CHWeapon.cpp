@@ -3,6 +3,8 @@
 
 #include "Equipment/CHWeapon.h"
 
+#include "Animation/CHAnimInstance.h"
+#include "Character/CHPlayerCharacter.h"
 #include "Component/CHCombatComponent.h"
 
 // Sets default values
@@ -55,5 +57,13 @@ void ACHWeapon::EquipItem()
 		CombatComponent->SetWeapon(this);
 		AttachToOwner(EquipSocketName);
 	}
+
+	//무기를 획득하면 현재 무기의 타입을 변환하고, 이를 적용
+	ACHPlayerCharacter* PlayerCharacter =  Cast<ACHPlayerCharacter>(GetOwner());
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->ChangeWeaponType(EWeaponType::Axe);
+	}
+	
 }
 

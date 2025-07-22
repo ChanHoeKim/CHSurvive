@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CHDefine.h"
 #include "GameFramework/Character.h"
 #include "CHPlayerCharacter.generated.h"
 
@@ -62,7 +63,8 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void ServerInteract();
-	
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 private:
 	/** Top down camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -89,7 +91,19 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Character Target Point", meta=(AllowPrivateAccess))
 	FVector TargetPoint;
-	
-	
+
+
+private:
+	UPROPERTY(ReplicatedUsing=OnRep_ChangeWeaponType)
+	EWeaponType CurrentWeapon = EWeaponType::None;
+
+	UFUNCTION()
+	void OnRep_ChangeWeaponType();
+
+
+public:
+	FORCEINLINE EWeaponType GetCurrentWeaponType() {return CurrentWeapon;}
+
+	void ChangeWeaponType(EWeaponType WeaponType);
 };
 
