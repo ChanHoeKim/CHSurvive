@@ -3,6 +3,8 @@
 
 #include "Environment/CHTree.h"
 
+#include "Animation/CHAnimInstance.h"
+#include "Character/CHPlayerCharacter.h"
 #include "Components/BoxComponent.h"
 
 // Sets default values
@@ -22,6 +24,31 @@ void ACHTree::BeginPlay()
 	Super::BeginPlay();
 	
 }
+
+void ACHTree::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	Trigger->OnComponentBeginOverlap.AddDynamic(this, &ACHTree::OnOverlapBegin);
+}
+
+void ACHTree::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepHitResult)
+{
+
+	
+	ACHPlayerCharacter* OverlappingPawn = Cast<ACHPlayerCharacter>(OtherActor);
+	if (OverlappingPawn)
+	{
+		OverlappingPawn->bBeReadyToAttack = true;
+		OverlappingPawn->bShouldMove = false;
+		
+		OverlappingPawn->bTargetAttack = true;
+		
+	}
+}
+
+
 
 
 

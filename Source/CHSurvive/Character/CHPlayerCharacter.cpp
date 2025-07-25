@@ -24,7 +24,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "Animation/CHAnimInstance.h"
 #include "Component/CHCombatComponent.h"
+#include "Engine/DamageEvents.h"
 #include "Engine/LocalPlayer.h"
+#include "Environment/CHTree.h"
 #include "Equipment/CHWeapon.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Interface/CHInteractInterface.h"
@@ -95,6 +97,9 @@ void ACHPlayerCharacter::Tick(float DeltaSeconds)
 		{
 			bShouldMove = false;
 		}
+	}else if (bTargetAttack)
+	{
+		Attack();
 	}
 }
 
@@ -141,26 +146,120 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void ACHPlayerCharacter::Attack()
 {
+
 	if (!bBeReadyToAttack)
 	{
 		return;
 	}
+	
 	if (!bCanAttack)
 	{
 		return;
 	}
 	bCanAttack = false;
+	
 	if (!HasAuthority())
 	{
 		//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 
 		//GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
 
+		// if (GEngine)
+		// {
+		// 	GEngine->AddOnScreenDebugMessage(
+		// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+		// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
+		// 					FColor::Green, // 텍스트 색상
+		// 						TEXT("공격") // 출력할 메시지
+		// 						);
+		// }
+		
 		AttackAnimationPlay();
 	}
 	
 	ServerRPCAttack();
 	
+}
+
+void ACHPlayerCharacter::AttackHitCheck()
+{
+	if (IsLocallyControlled())
+	{
+		ACHWeapon* Weapon = Cast<ACHWeapon>(CombatComponent->GetMainWeapon());
+		UPrimitiveComponent* WeaponMesh = Cast<UPrimitiveComponent>(Weapon->Mesh);
+		
+		if (WeaponMesh)
+		{
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(
+						-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+							5.0f, // Duration (화면에 표시될 시간, 초 단위)
+								FColor::Green, // 텍스트 색상
+									TEXT("히트체크") // 출력할 메시지
+									);
+			}
+			const FVector Start =WeaponMesh->GetSocketLocation(Weapon->TraceStartSocketName);
+			const FVector End =WeaponMesh->GetSocketLocation(Weapon->TraceEndSocketName);
+			const float TraceRadius = 50.f;
+			
+			FHitResult OutHitResult;
+			TArray <TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes;
+			TArray<AActor*> IgnoredActors;
+			TEnumAsByte<EDrawDebugTrace::Type> DrawDebugType = EDrawDebugTrace::ForDuration;
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
+
+			// bool const bHit = UKismetSystemLibrary::SphereTraceSingleForObjects(
+			// this,
+			// Start, // Sphere Trace의 시작 위치
+			// End, //       "      의 끝 위치
+			// TraceRadius, // 반지름
+			// TraceObjectTypes, // 생성자에서 Pawn만 감지하도록 추가
+			// false, // 복잡한 콜리전 미사용
+			// IgnoredActors, // 무시할 액터
+			// DrawDebugType,
+			// OutHitResult, //                       감지된 결과
+			// true // 자신 무시할지 여부
+			// );
+			//
+			// if (bHit)
+			// {
+			// 	FDamageEvent DamageEvent;
+			// 	OutHitResult.GetActor()->TakeDamage(10, DamageEvent, GetController(), this);
+			// }
+
+			
+			bool HitDetected = GetWorld()->SweepSingleByChannel(
+				OutHitResult,
+				Start,
+				End,
+				FQuat::Identity,
+				ECC_Pawn,
+				FCollisionShape::MakeSphere(TraceRadius),
+				Params);
+			if (HitDetected)
+			{
+				FDamageEvent DamageEvent;
+				OutHitResult.GetActor()->TakeDamage(10, DamageEvent, GetController(), this);
+			}
+
+#if ENABLE_DRAW_DEBUG
+
+			FVector CapsuleOrigin = Start + (End - Start) * 0.5f;
+			float CapsuleHalfHeight = FVector::Dist(Start, End) * 0.5f;
+			FColor DrawColor = HitDetected ? FColor::Green : FColor::Red;
+
+			DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, TraceRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 5.0f);
+
+#endif
+		}
+	}
+}
+
+void ACHPlayerCharacter::ServerRPCAttackTargetEnd_Implementation()
+{
+	bTargetAttack = false;
+	bBeReadyToAttack = false;
 }
 
 void ACHPlayerCharacter::ServerRPCAttack_Implementation()
@@ -221,19 +320,19 @@ void ACHPlayerCharacter::ClientRPCPlayAnimation_Implementation(ACHPlayerCharacte
 
 void ACHPlayerCharacter::ReadyToAttack()
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-					5.0f, // Duration (화면에 표시될 시간, 초 단위)
-						FColor::Green, // 텍스트 색상
-							TEXT("ReadyToAttack") // 출력할 메시지
-							);
-	}
-
+	// if (GEngine)
+	// {
+	// 	GEngine->AddOnScreenDebugMessage(
+	// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 					FColor::Green, // 텍스트 색상
+	// 						TEXT("ReadyToAttack") // 출력할 메시지
+	// 						);
+	// }
 	if (HasAuthority())
 	{
 		bBeReadyToAttack = true;
+		bShouldMove = false;
 		UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
 		if (Anim)
 		{
@@ -269,15 +368,15 @@ void ACHPlayerCharacter::ReadyToAttackEnd()
 void ACHPlayerCharacter::ServerRPCChangebBeReadyToAttack_Implementation(bool InBool)
 {
 	//if (!HasAuthority()) return;
-	if (GEngine)
-	{
-			GEngine->AddOnScreenDebugMessage(
-					-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-						5.0f, // Duration (화면에 표시될 시간, 초 단위)
-							FColor::Green, // 텍스트 색상
-								TEXT("ServerRPCChangebBeReadyToAttack_Implementation") // 출력할 메시지
-								);
-	}
+	// if (GEngine)
+	// {
+	// 		GEngine->AddOnScreenDebugMessage(
+	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 						FColor::Green, // 텍스트 색상
+	// 							TEXT("ServerRPCChangebBeReadyToAttack_Implementation") // 출력할 메시지
+	// 							);
+	// }
 	bBeReadyToAttack = InBool;
 	UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
 	if (Anim)
@@ -317,10 +416,14 @@ void ACHPlayerCharacter::OnClickMove()
 	// 							);
 	// 							}
 
-	if (bBeReadyToAttack)
+	if (!bTargetAttack)
 	{
-		return;
+		if (bBeReadyToAttack)
+		{
+			return;
+		}
 	}
+	
 	
 	FHitResult Hit;
 	APlayerController* PC = Cast<APlayerController>(GetController());
@@ -328,9 +431,29 @@ void ACHPlayerCharacter::OnClickMove()
 	{
 		PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit);
 	}
+
+	//if ()
 	
 	if (Hit.bBlockingHit)
 	{
+		ACHTree* Tree = Cast<ACHTree>(Hit.GetActor());
+		if (Tree)
+		{
+			if (GEngine)
+			{
+					GEngine->AddOnScreenDebugMessage(
+							-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+								5.0f, // Duration (화면에 표시될 시간, 초 단위)
+									FColor::Green, // 텍스트 색상
+										TEXT("나무 클릭") // 출력할 메시지
+										);
+			}
+		}
+		else
+		{
+			ServerRPCAttackTargetEnd();
+		}
+		
 		TargetPoint = Hit.Location;
 		bShouldMove = true;
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(

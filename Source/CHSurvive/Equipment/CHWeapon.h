@@ -32,6 +32,14 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Attack Animation")
 	TObjectPtr<UAnimMontage> AttackAnim;
+
+public:
+	UPROPERTY(EditAnywhere)
+	FName TraceStartSocketName;
+
+	UPROPERTY(EditAnywhere)
+	FName TraceEndSocketName;
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

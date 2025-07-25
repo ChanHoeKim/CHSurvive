@@ -72,7 +72,7 @@ protected:
 
 	void ReadyToAttack();
 
-	void Attack();
+	
 	
 
 	UFUNCTION(Server, Reliable)
@@ -98,11 +98,20 @@ private:
 	TObjectPtr<UCHCombatComponent> CombatComponent;
 	
 public:
+	void Attack();
+
+	void AttackHitCheck();
+	
+	uint8 bTargetAttack:1 = false;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_ChangebBeReadyToAttack)
 	uint8 bBeReadyToAttack:1 = false;
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangebBeReadyToAttack(bool InBool);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCAttackTargetEnd();
 	
 	uint8 bShouldMove:1 = false;
 
