@@ -17,6 +17,7 @@
 #include "Character/CHPlayerCharacter.h"
 
 #include "CHDefine.h"
+#include "EngineUtils.h"
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
@@ -24,6 +25,7 @@
 #include "Animation/CHAnimInstance.h"
 #include "Component/CHCombatComponent.h"
 #include "Engine/LocalPlayer.h"
+#include "Equipment/CHWeapon.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Interface/CHInteractInterface.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -117,6 +119,10 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::Sprint);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::SprintEnd);
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Interact);
+		EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::ReadyToAttack);
+		EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::ReadyToAttackEnd);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Attack);
+
 		
 	}
 	else
@@ -129,7 +135,173 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 								FColor::Green, // 텍스트 색상
 									TEXT("키 바인딩 에러") // 출력할 메시지
 									);
-									}
+		}
+	}
+}
+
+void ACHPlayerCharacter::Attack()
+{
+	if (!bBeReadyToAttack)
+	{
+		return;
+	}
+	if (!bCanAttack)
+	{
+		return;
+	}
+	bCanAttack = false;
+	if (!HasAuthority())
+	{
+		//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+
+		//GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
+
+		AttackAnimationPlay();
+	}
+	
+	ServerRPCAttack();
+	
+}
+
+void ACHPlayerCharacter::ServerRPCAttack_Implementation()
+{
+	AttackAnimationPlay();
+
+	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld()))
+	{
+		if (PlayerController && GetController() != PlayerController)
+		{
+			if(!PlayerController->IsLocalController())
+			{
+				ACHPlayerCharacter* OtherPlayer = Cast<ACHPlayerCharacter>(PlayerController->GetPawn());
+				if (OtherPlayer)
+				{
+					OtherPlayer->ClientRPCPlayAnimation(this);
+				}
+			}
+		}
+	}
+}
+
+void ACHPlayerCharacter::AttackAnimationPlay()
+{
+	ACHWeapon* Weapon = CombatComponent->GetMainWeapon();
+	if (Weapon)
+	{
+		UAnimMontage* AttackAnim = Weapon->GetAttackAnim();
+		if (AttackAnim)
+		{
+			
+			UCHAnimInstance* AnimInstance = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
+			if (AnimInstance)
+			{
+				// if (GEngine)
+				// {
+				// 	GEngine->AddOnScreenDebugMessage(
+				// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+				// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
+				// 					FColor::Green, // 텍스트 색상
+				// 						TEXT("공격!") // 출력할 메시지
+				// 						);
+				// }
+				AnimInstance->StopAllMontages(0.0f);
+				AnimInstance->Montage_Play(AttackAnim);
+			}
+		}
+	}
+}
+
+void ACHPlayerCharacter::ClientRPCPlayAnimation_Implementation(ACHPlayerCharacter* CharacterType)
+{
+	if (CharacterType)
+	{
+		CharacterType->AttackAnimationPlay();
+	}
+}
+
+void ACHPlayerCharacter::ReadyToAttack()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+					5.0f, // Duration (화면에 표시될 시간, 초 단위)
+						FColor::Green, // 텍스트 색상
+							TEXT("ReadyToAttack") // 출력할 메시지
+							);
+	}
+
+	if (HasAuthority())
+	{
+		bBeReadyToAttack = true;
+		UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
+		if (Anim)
+		{
+			Anim->UpdateAttackMode();
+		}
+	}
+	else
+	{
+		ServerRPCChangebBeReadyToAttack(true);
+	}
+}
+
+
+
+void ACHPlayerCharacter::ReadyToAttackEnd()
+{
+	
+	if (HasAuthority())
+	{
+		bBeReadyToAttack = false;
+		UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
+		if (Anim)
+		{
+			Anim->UpdateAttackMode();
+		}
+	}
+	else
+	{
+		ServerRPCChangebBeReadyToAttack(false);
+	}
+}
+
+void ACHPlayerCharacter::ServerRPCChangebBeReadyToAttack_Implementation(bool InBool)
+{
+	//if (!HasAuthority()) return;
+	if (GEngine)
+	{
+			GEngine->AddOnScreenDebugMessage(
+					-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+						5.0f, // Duration (화면에 표시될 시간, 초 단위)
+							FColor::Green, // 텍스트 색상
+								TEXT("ServerRPCChangebBeReadyToAttack_Implementation") // 출력할 메시지
+								);
+	}
+	bBeReadyToAttack = InBool;
+	UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
+	if (Anim)
+	{
+		Anim->UpdateAttackMode();
+	}
+}
+
+void ACHPlayerCharacter::OnRep_ChangebBeReadyToAttack()
+{
+	// if (GEngine)
+	// {
+	// 		GEngine->AddOnScreenDebugMessage(
+	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 						FColor::Green, // 텍스트 색상
+	// 							TEXT("OnRep_ChangebBeReadyToAttack") // 출력할 메시지
+	// 							);
+	// 							}
+
+	UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
+	if (Anim)
+	{
+		Anim->UpdateAttackMode();
 	}
 }
 
@@ -145,6 +317,11 @@ void ACHPlayerCharacter::OnClickMove()
 	// 							);
 	// 							}
 
+	if (bBeReadyToAttack)
+	{
+		return;
+	}
+	
 	FHitResult Hit;
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC)
@@ -218,12 +395,19 @@ void ACHPlayerCharacter::Interact()
 	}
 }
 
+
+
+
 void ACHPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, CurrentWeapon);
+	DOREPLIFETIME(ThisClass, bBeReadyToAttack);
 }
+
+
+
 
 void ACHPlayerCharacter::OnRep_ChangeWeaponType()
 {
@@ -236,15 +420,15 @@ void ACHPlayerCharacter::OnRep_ChangeWeaponType()
 
 void ACHPlayerCharacter::ChangeWeaponType(EWeaponType WeaponType)
 {
-	if (GEngine)
-	{
-			GEngine->AddOnScreenDebugMessage(
-					-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-						5.0f, // Duration (화면에 표시될 시간, 초 단위)
-							FColor::Green, // 텍스트 색상
-								TEXT("Click") // 출력할 메시지
-								);
-	}
+	// if (GEngine)
+	// {
+	// 		GEngine->AddOnScreenDebugMessage(
+	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 						FColor::Green, // 텍스트 색상
+	// 							TEXT("Click") // 출력할 메시지
+	// 							);
+	// }
 	if (HasAuthority())
 	{
 		CurrentWeapon = WeaponType;
@@ -286,6 +470,8 @@ void ACHPlayerCharacter::SprintEnd()
 		ServerRPCChangeCharacterMaxWalkSpeed(700.f);
 	}
 }
+
+
 
 void ACHPlayerCharacter::ServerRPCChangeCharacterMaxWalkSpeed_Implementation(float Speed)
 {

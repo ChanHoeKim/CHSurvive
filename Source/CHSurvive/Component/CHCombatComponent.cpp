@@ -15,7 +15,7 @@ UCHCombatComponent::UCHCombatComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	//bReplicates = true;
 	// ...
-	//SetIsReplicatedByDefault(true);
+	SetIsReplicatedByDefault(true);
 }
 
 

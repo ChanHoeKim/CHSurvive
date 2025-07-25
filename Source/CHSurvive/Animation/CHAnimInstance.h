@@ -27,6 +27,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EWeaponType CurrentWeapon = EWeaponType::None; 
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	uint8 bBeReadyToAttack:1=false;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement Data")
@@ -48,4 +50,5 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	void UpdateIdle();
+	void UpdateAttackMode();
 };

@@ -21,6 +21,7 @@ public:
 protected:
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	TObjectPtr<ACHWeapon> MainWeapon; 
+
 	
 protected:
 	// Called when the game starts
@@ -35,4 +36,5 @@ public:
 
 public:
 	void SetWeapon(ACHWeapon* NewWeapon);
+	FORCEINLINE ACHWeapon* GetMainWeapon(){return MainWeapon;}
 };

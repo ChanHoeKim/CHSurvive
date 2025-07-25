@@ -41,3 +41,8 @@ void UCHAnimInstance::UpdateIdle()
 {
 	CurrentWeapon = Character->GetCurrentWeaponType();
 }
+
+void UCHAnimInstance::UpdateAttackMode()
+{
+	bBeReadyToAttack = Character->GetCurrentCharacterFightMode();
+}

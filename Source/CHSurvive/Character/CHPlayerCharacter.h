@@ -47,23 +47,42 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	UInputAction* InteractAction;
-	
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* ReadyToAttackAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* AttackAction;
+
+
 protected:
 	/** True if the controlled character should navigate to the mouse cursor. */
 	uint32 bMoveToMouseCursor : 1;
 
 	void Sprint();
 	void SprintEnd();
+	void ReadyToAttackEnd();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	void OnClickMove();
 	void CheckInteract();
 
 	void Interact();
-	
 	UFUNCTION(Server, Reliable)
 	void ServerInteract();
 
+	void ReadyToAttack();
+
+	void Attack();
+	
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCAttack();
+
+	void AttackAnimationPlay();
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPCPlayAnimation(ACHPlayerCharacter* CharacterType);
+	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 private:
 	/** Top down camera */
@@ -79,8 +98,16 @@ private:
 	TObjectPtr<UCHCombatComponent> CombatComponent;
 	
 public:
+	UPROPERTY(ReplicatedUsing=OnRep_ChangebBeReadyToAttack)
+	uint8 bBeReadyToAttack:1 = false;
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangebBeReadyToAttack(bool InBool);
+	
 	uint8 bShouldMove:1 = false;
 
+	uint8 bCanAttack:1=true;
+	
 	float MoveTargetAllowRadius = 10.0;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="WalkSpeed")
@@ -94,6 +121,9 @@ public:
 
 
 private:
+	UFUNCTION()
+	void OnRep_ChangebBeReadyToAttack();
+	
 	UPROPERTY(ReplicatedUsing=OnRep_ChangeWeaponType)
 	EWeaponType CurrentWeapon = EWeaponType::None;
 
@@ -103,7 +133,8 @@ private:
 
 public:
 	FORCEINLINE EWeaponType GetCurrentWeaponType() {return CurrentWeapon;}
-
+	FORCEINLINE bool GetCurrentCharacterFightMode() {return bBeReadyToAttack;}
+	
 	void ChangeWeaponType(EWeaponType WeaponType);
 };
 

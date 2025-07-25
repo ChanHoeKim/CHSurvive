@@ -29,7 +29,9 @@ protected:
 	//CombatComponent의 무기를 가져오기
 	UPROPERTY()
 	TObjectPtr<UCHCombatComponent> CombatComponent;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Attack Animation")
+	TObjectPtr<UAnimMontage> AttackAnim;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -37,4 +39,5 @@ public:
 	// UFUNCTION(Server, Reliable)
 	// virtual void ServerRPCEquipItem() override;
 	virtual void EquipItem() override;
+	FORCEINLINE UAnimMontage* GetAttackAnim(){return AttackAnim;}
 };
