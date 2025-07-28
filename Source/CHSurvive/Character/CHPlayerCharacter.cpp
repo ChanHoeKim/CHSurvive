@@ -97,10 +97,20 @@ void ACHPlayerCharacter::Tick(float DeltaSeconds)
 		{
 			bShouldMove = false;
 		}
-	}else if (bTargetAttack)
-	{
-		Attack();
 	}
+	// else if (bTargetAttack)
+	// {
+	// 	if (GEngine)
+	// 	{
+	// 		GEngine->AddOnScreenDebugMessage(
+	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 						FColor::Green, // 텍스트 색상
+	// 							TEXT("bTargetAttack") // 출력할 메시지
+	// 							);
+	// 	}
+	// 	Attack();
+	// }
 }
 
 void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -146,7 +156,7 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void ACHPlayerCharacter::Attack()
 {
-
+	
 	if (!bBeReadyToAttack)
 	{
 		return;
@@ -164,15 +174,7 @@ void ACHPlayerCharacter::Attack()
 
 		//GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
 
-		// if (GEngine)
-		// {
-		// 	GEngine->AddOnScreenDebugMessage(
-		// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-		// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
-		// 					FColor::Green, // 텍스트 색상
-		// 						TEXT("공격") // 출력할 메시지
-		// 						);
-		// }
+		
 		
 		AttackAnimationPlay();
 	}
@@ -237,6 +239,7 @@ void ACHPlayerCharacter::AttackHitCheck()
 				ECC_Pawn,
 				FCollisionShape::MakeSphere(TraceRadius),
 				Params);
+			
 			if (HitDetected)
 			{
 				FDamageEvent DamageEvent;
@@ -256,9 +259,29 @@ void ACHPlayerCharacter::AttackHitCheck()
 	}
 }
 
+void ACHPlayerCharacter::OnOffTagetAutoAttack(bool InOnOff)
+{
+	if (InOnOff)
+	{
+		if (GetWorld()->GetTimerManager().IsTimerActive(TargetAttackTimerHandle) == false)
+		{
+			GetWorld()->GetTimerManager().SetTimer(TargetAttackTimerHandle,this, &ACHPlayerCharacter::Attack, 0.5f, true);
+		}
+	}
+	else
+	{
+		GetWorld()->GetTimerManager().ClearTimer(TargetAttackTimerHandle);
+	}
+}
+
+
+// void ACHPlayerCharacter::TagetAutoAttackEnd()
+// {
+// }
+
+
 void ACHPlayerCharacter::ServerRPCAttackTargetEnd_Implementation()
 {
-	bTargetAttack = false;
 	bBeReadyToAttack = false;
 }
 
@@ -448,6 +471,7 @@ void ACHPlayerCharacter::OnClickMove()
 										TEXT("나무 클릭") // 출력할 메시지
 										);
 			}
+			ServerRPCAttackTargetEnd_Implementation();
 		}
 		else
 		{

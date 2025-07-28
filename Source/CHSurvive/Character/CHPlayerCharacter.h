@@ -103,6 +103,10 @@ public:
 	void AttackHitCheck();
 	
 	uint8 bTargetAttack:1 = false;
+	FTimerHandle TargetAttackTimerHandle;
+
+	void OnOffTagetAutoAttack(bool InOnOff);
+	//void TagetAutoAttackEnd();
 	
 	UPROPERTY(ReplicatedUsing=OnRep_ChangebBeReadyToAttack)
 	uint8 bBeReadyToAttack:1 = false;

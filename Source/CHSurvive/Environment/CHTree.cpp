@@ -30,6 +30,7 @@ void ACHTree::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	Trigger->OnComponentBeginOverlap.AddDynamic(this, &ACHTree::OnOverlapBegin);
+	Trigger->OnComponentEndOverlap.AddDynamic(this, &ACHTree::OnOverlapEnd);
 }
 
 void ACHTree::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -42,11 +43,30 @@ void ACHTree::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* O
 	{
 		OverlappingPawn->bBeReadyToAttack = true;
 		OverlappingPawn->bShouldMove = false;
-		
 		OverlappingPawn->bTargetAttack = true;
+		
+		OverlappingPawn->OnOffTagetAutoAttack(true);
+		//OverlappingPawn->bTargetAttack = true;
 		
 	}
 }
+
+void ACHTree::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex)
+{
+	ACHPlayerCharacter* OverlappingPawn = Cast<ACHPlayerCharacter>(OtherActor);
+	if (OverlappingPawn)
+	{
+		OverlappingPawn->bBeReadyToAttack = false;
+		//OverlappingPawn->bShouldMove = false;
+		OverlappingPawn->bTargetAttack = false;
+		
+		OverlappingPawn->OnOffTagetAutoAttack(false);
+		
+		//OverlappingPawn->bTargetAttack = true;
+	}
+}
+
 
 
 
