@@ -192,15 +192,15 @@ void ACHPlayerCharacter::AttackHitCheck()
 		
 		if (WeaponMesh)
 		{
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(
-						-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-							5.0f, // Duration (화면에 표시될 시간, 초 단위)
-								FColor::Green, // 텍스트 색상
-									TEXT("히트체크") // 출력할 메시지
-									);
-			}
+			// if (GEngine)
+			// {
+			// 	GEngine->AddOnScreenDebugMessage(
+			// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+			// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
+			// 					FColor::Green, // 텍스트 색상
+			// 						TEXT("히트체크") // 출력할 메시지
+			// 						);
+			// }
 			const FVector Start =WeaponMesh->GetSocketLocation(Weapon->TraceStartSocketName);
 			const FVector End =WeaponMesh->GetSocketLocation(Weapon->TraceEndSocketName);
 			const float TraceRadius = 50.f;
@@ -243,7 +243,13 @@ void ACHPlayerCharacter::AttackHitCheck()
 			if (HitDetected)
 			{
 				FDamageEvent DamageEvent;
+				if (!HasAuthority())
+				{
+					ServerRPC_AttackHitCheck(OutHitResult.GetActor());
+				}
 				OutHitResult.GetActor()->TakeDamage(10, DamageEvent, GetController(), this);
+				
+				
 			}
 
 #if ENABLE_DRAW_DEBUG
@@ -257,6 +263,12 @@ void ACHPlayerCharacter::AttackHitCheck()
 #endif
 		}
 	}
+}
+
+void ACHPlayerCharacter::ServerRPC_AttackHitCheck_Implementation(AActor* InActor)
+{
+	FDamageEvent DamageEvent;
+	InActor->TakeDamage(10, DamageEvent, GetController(), this);
 }
 
 void ACHPlayerCharacter::OnOffTagetAutoAttack(bool InOnOff)
@@ -367,6 +379,7 @@ void ACHPlayerCharacter::ReadyToAttack()
 		ServerRPCChangebBeReadyToAttack(true);
 	}
 }
+
 
 
 

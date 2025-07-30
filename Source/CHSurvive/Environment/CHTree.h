@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "CHTree.generated.h"
 
+class ACHLog;
 class UBoxComponent;
 
 UCLASS()
@@ -28,14 +29,28 @@ protected:
 
 	UFUNCTION()
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_DestroyTree();
+
+	void SpawnLog();
+	
 public:	
 	// Called every frame
-	//virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(EditAnywhere, Category="Spawning")
+	TSubclassOf<ACHLog> LogClassToSpawn;
+	
+private:
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
+	
 protected:
 	UPROPERTY(VisibleAnywhere, Category="Tree")
 	TObjectPtr<UBoxComponent> Trigger;
 
 	UPROPERTY(VisibleAnywhere, Category="Tree")
 	TObjectPtr<UStaticMeshComponent> Mesh;
+
+	float TreeHp = 20.f;
 };

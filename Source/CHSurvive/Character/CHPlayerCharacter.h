@@ -73,6 +73,9 @@ protected:
 	void ReadyToAttack();
 
 	
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_AttackHitCheck(AActor* InActor);
 	
 
 	UFUNCTION(Server, Reliable)

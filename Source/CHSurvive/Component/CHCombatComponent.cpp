@@ -30,12 +30,12 @@ void UCHCombatComponent::BeginPlay()
 
 void UCHCombatComponent::OnRep_EquippedWeapon()
 {
-	GEngine->AddOnScreenDebugMessage(
-					-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-						5.0f, // Duration (화면에 표시될 시간, 초 단위)
-							FColor::Green, // 텍스트 색상
-								TEXT("OnRep_EquippedWeapon") // 출력할 메시지
-							);
+	// GEngine->AddOnScreenDebugMessage(
+	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 						FColor::Green, // 텍스트 색상
+	// 							TEXT("OnRep_EquippedWeapon") // 출력할 메시지
+	// 						);
 	// ACHWeapon* Weapon = Cast<ACHWeapon>(MainWeapon);
 	// if (Weapon)
 	// {
