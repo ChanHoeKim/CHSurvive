@@ -31,6 +31,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Interface/CHInteractInterface.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "UI/CHInventoryWidget.h"
 
 ACHPlayerCharacter::ACHPlayerCharacter()
 {
@@ -76,7 +77,11 @@ ACHPlayerCharacter::ACHPlayerCharacter()
 
 	CombatComponent = CreateDefaultSubobject<UCHCombatComponent>(TEXT("CombatComponent"));
 	CombatComponent->SetIsReplicated(true);
-	
+
+	if (InventoryWidgetClass)
+	{
+		InventoryWidget = CreateWidget<UUserWidget>(GetWorld(), InventoryWidgetClass);
+	}
 }
 
 void ACHPlayerCharacter::Tick(float DeltaSeconds)
@@ -138,6 +143,9 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::ReadyToAttackEnd);
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Attack);
 
+		EnhancedInputComponent->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OpenInventory);
+		//EnhancedInputComponent->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::CloseInventory);
+		
 		
 	}
 	else
@@ -380,6 +388,23 @@ void ACHPlayerCharacter::ReadyToAttack()
 	}
 }
 
+void ACHPlayerCharacter::OpenInventory()
+{
+	check(InventoryWidget);
+	
+	//인벤토리 열린 상태
+	if (bIsOpenInventory)
+	{
+		InventoryWidget->RemoveFromParent();
+		bIsOpenInventory = false;
+	}
+	//인벤토리 닫힌 상태
+	else 
+	{
+		InventoryWidget->AddToViewport();
+		bIsOpenInventory = true;
+	}
+}
 
 
 

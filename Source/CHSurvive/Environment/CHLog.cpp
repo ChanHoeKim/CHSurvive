@@ -3,7 +3,9 @@
 
 #include "Environment/CHLog.h"
 
+#include "Character/CHPlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "UI/CHInventoryWidget.h"
 
 // Sets default values
 ACHLog::ACHLog()
@@ -46,6 +48,16 @@ void ACHLog::Interact(AActor* Interactor)
 						FColor::Green, // 텍스트 색상
 							TEXT("통나무 드랍") // 출력할 메시지
 							);
+	}
+
+	ACHPlayerCharacter* Character = Cast<ACHPlayerCharacter>(Interactor);
+	if (Character)
+	{
+		UCHInventoryWidget* InventoryWidget = Cast<UCHInventoryWidget>(Character->InventoryWidget);
+		if (InventoryWidget)
+		{
+			InventoryWidget->GetLog();
+		}
 	}
 }
 

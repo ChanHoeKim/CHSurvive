@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "CHPlayerCharacter.generated.h"
 
+class UCHInventoryWidget;
 class UCHCombatComponent;
 /** Forward declaration to improve compiling times */
 class UNiagaraSystem;
@@ -53,7 +54,9 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	UInputAction* AttackAction;
-
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+    UInputAction* OpenInventoryAction;
 
 protected:
 	/** True if the controlled character should navigate to the mouse cursor. */
@@ -72,8 +75,11 @@ protected:
 
 	void ReadyToAttack();
 
-	
+	void OpenInventory();
+	uint8 bIsOpenInventory:1 = false;
 
+
+	
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_AttackHitCheck(AActor* InActor);
 	
@@ -101,6 +107,12 @@ private:
 	TObjectPtr<UCHCombatComponent> CombatComponent;
 	
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Widget | Inventory")
+	TSubclassOf<UCHInventoryWidget> InventoryWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> InventoryWidget;
+	
 	void Attack();
 
 	void AttackHitCheck();
