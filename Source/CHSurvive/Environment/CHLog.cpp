@@ -13,7 +13,6 @@ ACHLog::ACHLog()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	//PrimaryActorTick.bCanEverTick = true;
 	
-	
 	bReplicates = true;
 
 	LogAsset = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LogAsset"));
@@ -40,24 +39,21 @@ void ACHLog::BeginPlay()
 
 void ACHLog::Interact(AActor* Interactor)
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-					5.0f, // Duration (화면에 표시될 시간, 초 단위)
-						FColor::Green, // 텍스트 색상
-							TEXT("통나무 드랍") // 출력할 메시지
-							);
-	}
+	// if (GEngine)
+	// {
+	// 	GEngine->AddOnScreenDebugMessage(
+	// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 					FColor::Green, // 텍스트 색상
+	// 						TEXT("통나무 드랍") // 출력할 메시지
+	// 						);
+	// }
 
 	ACHPlayerCharacter* Character = Cast<ACHPlayerCharacter>(Interactor);
 	if (Character)
 	{
-		UCHInventoryWidget* InventoryWidget = Cast<UCHInventoryWidget>(Character->InventoryWidget);
-		if (InventoryWidget)
-		{
-			InventoryWidget->GetLog();
-		}
+		Character->ClientRPC_Interact(this);
+		Destroy();
 	}
 }
 
@@ -67,17 +63,4 @@ void ACHLog::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-
-// void ACHLog::OnConstruction(const FTransform& Transform)
-// {
-// 	Super::OnConstruction(Transform);
-// 	if (EquipmentClass)
-// 	{
-// 		if (AActor* CDO = EquipmentClass->GetDefaultObject<AActor>())
-// 		{
-// 			Mesh->SetStaticMesh(CDO->MeshAsset);
-// 			Mesh->SetSimulatePhysics(true);
-// 		}
-// 	}
-// }
 

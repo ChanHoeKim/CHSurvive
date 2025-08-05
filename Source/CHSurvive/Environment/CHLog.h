@@ -25,6 +25,8 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	FORCEINLINE UTexture2D* GetLogIcon(){return LogIcon;}
+	
 protected:
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Asset")
 	// TObjectPtr<UStaticMeshComponent> LogAsset;
@@ -40,4 +42,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UStaticMeshComponent* LogAsset;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Icon")
+	UTexture2D* LogIcon;
 };

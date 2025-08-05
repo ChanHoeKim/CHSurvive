@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "CHPlayerCharacter.generated.h"
 
+class ACHLog;
 class UCHInventoryWidget;
 class UCHCombatComponent;
 /** Forward declaration to improve compiling times */
@@ -34,6 +35,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UNiagaraSystem* FXCursor;
 
+	virtual void BeginPlay() override;
 
 private:
 	/** MappingContext */
@@ -73,6 +75,8 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerInteract();
 
+	
+	
 	void ReadyToAttack();
 
 	void OpenInventory();
@@ -107,6 +111,10 @@ private:
 	TObjectPtr<UCHCombatComponent> CombatComponent;
 	
 public:
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_Interact(ACHLog* InLog);
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Widget | Inventory")
 	TSubclassOf<UCHInventoryWidget> InventoryWidgetClass;
 

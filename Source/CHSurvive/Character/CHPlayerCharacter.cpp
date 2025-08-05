@@ -3,24 +3,19 @@
 #include "CHPlayerCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Camera/CameraComponent.h"
-#include "Components/DecalComponent.h"
-#include "Components/CapsuleComponent.h"
+
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Materials/Material.h"
 #include "Engine/World.h"
 #include "Net/UnrealNetwork.h"
-#include "Blueprint/AIBlueprintHelperLibrary.h"
-#include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
-#include "Character/CHPlayerCharacter.h"
 
 #include "CHDefine.h"
 #include "EngineUtils.h"
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
-#include "InputActionValue.h"
 #include "EnhancedInputSubsystems.h"
 #include "Animation/CHAnimInstance.h"
 #include "Component/CHCombatComponent.h"
@@ -28,7 +23,6 @@
 #include "Engine/LocalPlayer.h"
 #include "Environment/CHTree.h"
 #include "Equipment/CHWeapon.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Interface/CHInteractInterface.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UI/CHInventoryWidget.h"
@@ -77,11 +71,6 @@ ACHPlayerCharacter::ACHPlayerCharacter()
 
 	CombatComponent = CreateDefaultSubobject<UCHCombatComponent>(TEXT("CombatComponent"));
 	CombatComponent->SetIsReplicated(true);
-
-	if (InventoryWidgetClass)
-	{
-		InventoryWidget = CreateWidget<UUserWidget>(GetWorld(), InventoryWidgetClass);
-	}
 }
 
 void ACHPlayerCharacter::Tick(float DeltaSeconds)
@@ -103,19 +92,19 @@ void ACHPlayerCharacter::Tick(float DeltaSeconds)
 			bShouldMove = false;
 		}
 	}
-	// else if (bTargetAttack)
-	// {
-	// 	if (GEngine)
-	// 	{
-	// 		GEngine->AddOnScreenDebugMessage(
-	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
-	// 						FColor::Green, // 텍스트 색상
-	// 							TEXT("bTargetAttack") // 출력할 메시지
-	// 							);
-	// 	}
-	// 	Attack();
-	// }
+}
+
+void ACHPlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (InventoryWidgetClass)
+	{
+		InventoryWidget = CreateWidget<UUserWidget>(GetWorld(), InventoryWidgetClass);
+
+		InventoryWidget->AddToViewport();
+		InventoryWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
 }
 
 void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -144,9 +133,6 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Attack);
 
 		EnhancedInputComponent->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OpenInventory);
-		//EnhancedInputComponent->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::CloseInventory);
-		
-		
 	}
 	else
 	{
@@ -178,12 +164,6 @@ void ACHPlayerCharacter::Attack()
 	
 	if (!HasAuthority())
 	{
-		//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-
-		//GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
-
-		
-		
 		AttackAnimationPlay();
 	}
 	
@@ -200,15 +180,6 @@ void ACHPlayerCharacter::AttackHitCheck()
 		
 		if (WeaponMesh)
 		{
-			// if (GEngine)
-			// {
-			// 	GEngine->AddOnScreenDebugMessage(
-			// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-			// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
-			// 					FColor::Green, // 텍스트 색상
-			// 						TEXT("히트체크") // 출력할 메시지
-			// 						);
-			// }
 			const FVector Start =WeaponMesh->GetSocketLocation(Weapon->TraceStartSocketName);
 			const FVector End =WeaponMesh->GetSocketLocation(Weapon->TraceEndSocketName);
 			const float TraceRadius = 50.f;
@@ -218,25 +189,6 @@ void ACHPlayerCharacter::AttackHitCheck()
 			TArray<AActor*> IgnoredActors;
 			TEnumAsByte<EDrawDebugTrace::Type> DrawDebugType = EDrawDebugTrace::ForDuration;
 			FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
-
-			// bool const bHit = UKismetSystemLibrary::SphereTraceSingleForObjects(
-			// this,
-			// Start, // Sphere Trace의 시작 위치
-			// End, //       "      의 끝 위치
-			// TraceRadius, // 반지름
-			// TraceObjectTypes, // 생성자에서 Pawn만 감지하도록 추가
-			// false, // 복잡한 콜리전 미사용
-			// IgnoredActors, // 무시할 액터
-			// DrawDebugType,
-			// OutHitResult, //                       감지된 결과
-			// true // 자신 무시할지 여부
-			// );
-			//
-			// if (bHit)
-			// {
-			// 	FDamageEvent DamageEvent;
-			// 	OutHitResult.GetActor()->TakeDamage(10, DamageEvent, GetController(), this);
-			// }
 
 			
 			bool HitDetected = GetWorld()->SweepSingleByChannel(
@@ -260,16 +212,16 @@ void ACHPlayerCharacter::AttackHitCheck()
 				
 			}
 
-#if ENABLE_DRAW_DEBUG
+	#if ENABLE_DRAW_DEBUG
 
-			FVector CapsuleOrigin = Start + (End - Start) * 0.5f;
-			float CapsuleHalfHeight = FVector::Dist(Start, End) * 0.5f;
-			FColor DrawColor = HitDetected ? FColor::Green : FColor::Red;
+				FVector CapsuleOrigin = Start + (End - Start) * 0.5f;
+				float CapsuleHalfHeight = FVector::Dist(Start, End) * 0.5f;
+				FColor DrawColor = HitDetected ? FColor::Green : FColor::Red;
 
-			DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, TraceRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 5.0f);
+				DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, TraceRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 5.0f);
 
-#endif
-		}
+	#endif
+			}
 	}
 }
 
@@ -293,11 +245,6 @@ void ACHPlayerCharacter::OnOffTagetAutoAttack(bool InOnOff)
 		GetWorld()->GetTimerManager().ClearTimer(TargetAttackTimerHandle);
 	}
 }
-
-
-// void ACHPlayerCharacter::TagetAutoAttackEnd()
-// {
-// }
 
 
 void ACHPlayerCharacter::ServerRPCAttackTargetEnd_Implementation()
@@ -337,15 +284,6 @@ void ACHPlayerCharacter::AttackAnimationPlay()
 			UCHAnimInstance* AnimInstance = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
 			if (AnimInstance)
 			{
-				// if (GEngine)
-				// {
-				// 	GEngine->AddOnScreenDebugMessage(
-				// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-				// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
-				// 					FColor::Green, // 텍스트 색상
-				// 						TEXT("공격!") // 출력할 메시지
-				// 						);
-				// }
 				AnimInstance->StopAllMontages(0.0f);
 				AnimInstance->Montage_Play(AttackAnim);
 			}
@@ -361,17 +299,10 @@ void ACHPlayerCharacter::ClientRPCPlayAnimation_Implementation(ACHPlayerCharacte
 	}
 }
 
+
+
 void ACHPlayerCharacter::ReadyToAttack()
 {
-	// if (GEngine)
-	// {
-	// 	GEngine->AddOnScreenDebugMessage(
-	// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-	// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
-	// 					FColor::Green, // 텍스트 색상
-	// 						TEXT("ReadyToAttack") // 출력할 메시지
-	// 						);
-	// }
 	if (HasAuthority())
 	{
 		bBeReadyToAttack = true;
@@ -395,13 +326,15 @@ void ACHPlayerCharacter::OpenInventory()
 	//인벤토리 열린 상태
 	if (bIsOpenInventory)
 	{
-		InventoryWidget->RemoveFromParent();
+		//InventoryWidget->RemoveFromParent();
+		InventoryWidget->SetVisibility(ESlateVisibility::Hidden);
 		bIsOpenInventory = false;
 	}
 	//인벤토리 닫힌 상태
 	else 
 	{
-		InventoryWidget->AddToViewport();
+		InventoryWidget->SetVisibility(ESlateVisibility::Visible);
+		//InventoryWidget->AddToViewport();
 		bIsOpenInventory = true;
 	}
 }
@@ -428,16 +361,6 @@ void ACHPlayerCharacter::ReadyToAttackEnd()
 
 void ACHPlayerCharacter::ServerRPCChangebBeReadyToAttack_Implementation(bool InBool)
 {
-	//if (!HasAuthority()) return;
-	// if (GEngine)
-	// {
-	// 		GEngine->AddOnScreenDebugMessage(
-	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
-	// 						FColor::Green, // 텍스트 색상
-	// 							TEXT("ServerRPCChangebBeReadyToAttack_Implementation") // 출력할 메시지
-	// 							);
-	// }
 	bBeReadyToAttack = InBool;
 	UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
 	if (Anim)
@@ -448,15 +371,6 @@ void ACHPlayerCharacter::ServerRPCChangebBeReadyToAttack_Implementation(bool InB
 
 void ACHPlayerCharacter::OnRep_ChangebBeReadyToAttack()
 {
-	// if (GEngine)
-	// {
-	// 		GEngine->AddOnScreenDebugMessage(
-	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
-	// 						FColor::Green, // 텍스트 색상
-	// 							TEXT("OnRep_ChangebBeReadyToAttack") // 출력할 메시지
-	// 							);
-	// 							}
 
 	UCHAnimInstance* Anim = Cast<UCHAnimInstance>(GetMesh()->GetAnimInstance());
 	if (Anim)
@@ -500,15 +414,15 @@ void ACHPlayerCharacter::OnClickMove()
 		ACHTree* Tree = Cast<ACHTree>(Hit.GetActor());
 		if (Tree)
 		{
-			if (GEngine)
-			{
-					GEngine->AddOnScreenDebugMessage(
-							-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-								5.0f, // Duration (화면에 표시될 시간, 초 단위)
-									FColor::Green, // 텍스트 색상
-										TEXT("나무 클릭") // 출력할 메시지
-										);
-			}
+			// if (GEngine)
+			// {
+			// 		GEngine->AddOnScreenDebugMessage(
+			// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+			// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
+			// 						FColor::Green, // 텍스트 색상
+			// 							TEXT("나무 클릭") // 출력할 메시지
+			// 							);
+			// }
 			ServerRPCAttackTargetEnd_Implementation();
 		}
 		else
@@ -533,39 +447,43 @@ void ACHPlayerCharacter::OnClickMove()
 
 void ACHPlayerCharacter::CheckInteract()
 {
-	FHitResult OutHit;
-	const FVector Start = GetActorLocation();
-	const FVector End = Start;
-	constexpr float Radius = 200.f;
-	
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(COLLISION_OBJECT_INTERACTION));
-	
-	TArray<AActor*> ActorsToIgnore;
-	
-	bool bHit = UKismetSystemLibrary::SphereTraceSingleForObjects(
-			this,
-			Start,
-			End,
-			Radius,
-			ObjectTypes,
-			false,
-			ActorsToIgnore,
-			EDrawDebugTrace::ForDuration,
-			OutHit,
-			true
-	);
-	
-	if (bHit)
+	if (HasAuthority())
 	{
-		if (AActor* HitActor = OutHit.GetActor())
+		FHitResult OutHit;
+		const FVector Start = GetActorLocation();
+		const FVector End = Start;
+		constexpr float Radius = 200.f;
+
+		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(COLLISION_OBJECT_INTERACTION));
+
+		TArray<AActor*> ActorsToIgnore;
+
+		bool bHit = UKismetSystemLibrary::SphereTraceSingleForObjects(
+				this,
+				Start,
+				End,
+				Radius,
+				ObjectTypes,
+				false,
+				ActorsToIgnore,
+				EDrawDebugTrace::ForDuration,
+				OutHit,
+				true
+		);
+
+		if (bHit)
 		{
-			if (ICHInteractInterface* Interaction = Cast<ICHInteractInterface>(HitActor))
+			if (AActor* HitActor = OutHit.GetActor())
 			{
-				Interaction->Interact(this);
+				if (ICHInteractInterface* Interaction = Cast<ICHInteractInterface>(HitActor))
+				{
+					Interaction->Interact(this);
+				}
 			}
 		}
 	}
+	
 }
 
 void ACHPlayerCharacter::Interact()
@@ -579,9 +497,6 @@ void ACHPlayerCharacter::Interact()
 		ServerInteract();
 	}
 }
-
-
-
 
 void ACHPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -627,6 +542,15 @@ void ACHPlayerCharacter::ServerInteract_Implementation()
 	
 	// 내 캐릭터가 맞으면 서버에 상호작용 요청 RPC 호출
 	CheckInteract();
+}
+
+void ACHPlayerCharacter::ClientRPC_Interact_Implementation(ACHLog* InLog)
+{
+	UCHInventoryWidget* InventoryWidget1 = Cast<UCHInventoryWidget>(InventoryWidget);
+	if (InventoryWidget1)
+	{
+		InventoryWidget1->GetLog(InLog);
+	}
 }
 
 void ACHPlayerCharacter::Sprint()

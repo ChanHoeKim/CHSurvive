@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Environment/CHLog.h"
 #include "CHInventoryWidget.generated.h"
 
 class UImage;
@@ -16,12 +17,14 @@ class CHSURVIVE_API UCHInventoryWidget : public UUserWidget
 	GENERATED_BODY()
 
 protected:
+	virtual void NativeConstruct() override;
+	
 	UPROPERTY(meta=(BindWidget), BlueprintReadWrite)
-	TObjectPtr<UImage> Slo2t1;
+	TObjectPtr<UImage> Slot1;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Image")
 	TObjectPtr<UTexture2D> LogImage;
 
-	void GetLog();
+	void GetLog(ACHLog* InLog);
 };
