@@ -4,7 +4,6 @@
 #include "Environment/CHTree.h"
 
 #include "CHLog.h"
-#include "Animation/CHAnimInstance.h"
 #include "Character/CHPlayerCharacter.h"
 #include "Components/BoxComponent.h"
 
@@ -100,17 +99,6 @@ void ACHTree::SpawnLog()
 void ACHTree::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	// if (GEngine)
-	// {
-	// 	GEngine->AddOnScreenDebugMessage(
-	// 			-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-	// 				5.0f, // Duration (화면에 표시될 시간, 초 단위)
-	// 					FColor::Green, // 텍스트 색상
-	// 						TEXT("Tick") // 출력할 메시지
-	// 						);
-	// }
-
 	
 	if (TreeHp <= 0)
 	{

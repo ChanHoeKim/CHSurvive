@@ -2,10 +2,7 @@
 
 
 #include "Environment/CHLog.h"
-
 #include "Character/CHPlayerCharacter.h"
-#include "Components/CapsuleComponent.h"
-#include "UI/CHInventoryWidget.h"
 
 // Sets default values
 ACHLog::ACHLog()

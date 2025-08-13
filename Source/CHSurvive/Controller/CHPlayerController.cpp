@@ -17,7 +17,7 @@ ACHPlayerController::ACHPlayerController()
 {
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
-	
+	bEnableClickEvents = true;
 	//CachedDestination = FVector::ZeroVector;
 }
 
@@ -30,6 +30,16 @@ void ACHPlayerController::BeginPlay()
 	//InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
 	SetInputMode(InputMode);
 
+}
+
+void ACHPlayerController::ServerRPC_PossessShip_Implementation(APawn* ShipPawn)
+{
+	if (!HasAuthority() || !ShipPawn) return;
+
+	//APawn*
+
+	Possess(ShipPawn);
+	//SetViewTargetWithBlend(ShipPawn, 0.25f);
 }
 
 

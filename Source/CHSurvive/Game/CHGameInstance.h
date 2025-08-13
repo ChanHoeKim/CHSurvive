@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Data/CHInventoryItemImage.h"
 #include "Engine/GameInstance.h"
 #include "CHGameInstance.generated.h"
 
@@ -18,7 +17,4 @@ class CHSURVIVE_API UCHGameInstance : public UGameInstance
 
 public:
 	UCHGameInstance();
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Invetory Item Image")
-	TArray<FCHInventoryItemImage> ItemImageTable;
 };

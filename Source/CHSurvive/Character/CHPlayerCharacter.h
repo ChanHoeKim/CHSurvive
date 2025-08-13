@@ -64,10 +64,26 @@ protected:
 	/** True if the controlled character should navigate to the mouse cursor. */
 	uint32 bMoveToMouseCursor : 1;
 
+    UPROPERTY(EditDefaultsOnly, Category="Move")
+    float AcceptanceRadius = 80.f;
+	
 	void Sprint();
 	void SprintEnd();
 	void ReadyToAttackEnd();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestMove(const FVector& RawHit);
+
+	UFUNCTION(Client, Reliable)
+	void Client_StartFollow(const TArray<FVector>& InPath);
+
+	UPROPERTY()
+	TArray<FVector> FollowPath;
+
+	bool bFollowingPath = false;
+	int32 PathIndex = 0;
+	
 	void OnClickMove();
 	void CheckInteract();
 

@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "CHPlayerCharacter.h"
+
+#include "AIController.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Camera/CameraComponent.h"
 
@@ -17,14 +19,19 @@
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "NavigationPath.h"
+#include "NavigationSystem.h"
 #include "Animation/CHAnimInstance.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Component/CHCombatComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Engine/LocalPlayer.h"
 #include "Environment/CHTree.h"
 #include "Equipment/CHWeapon.h"
 #include "Interface/CHInteractInterface.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "UI/CHInventoryWidget.h"
 
 ACHPlayerCharacter::ACHPlayerCharacter()
@@ -33,6 +40,7 @@ ACHPlayerCharacter::ACHPlayerCharacter()
 	//GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	bReplicates = true;
+	SetReplicateMovement(true);
 	
 	// Don't rotate character to camera direction
 	bUseControllerRotationPitch = false;
@@ -71,27 +79,39 @@ ACHPlayerCharacter::ACHPlayerCharacter()
 
 	CombatComponent = CreateDefaultSubobject<UCHCombatComponent>(TEXT("CombatComponent"));
 	CombatComponent->SetIsReplicated(true);
+
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 }
 
 void ACHPlayerCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
-	if (bShouldMove)
-	{
-		FVector ShouldMoveDirection = TargetPoint - GetActorLocation();
-		ShouldMoveDirection.Z = 0;
-		float Distance = ShouldMoveDirection.Size();
+	// 서버이면서 로컬이 아닌(=원격 플레이어의 서버 권위) 경우, 또는 소유 클라에서만 실행
+	const bool bServerNonLocal = HasAuthority() && !IsLocallyControlled();
+	if (!(IsLocallyControlled() || bServerNonLocal)) return;
+	
+	if (!bFollowingPath || !FollowPath.IsValidIndex(PathIndex)) return;
 
-		if (Distance > MoveTargetAllowRadius)
+	const FVector Here   = GetActorLocation();
+	FVector Target       = FollowPath[PathIndex];
+	Target.Z             = Here.Z;
+
+	const FVector To     = Target - Here;
+	const float Dist2D   = To.Size2D();
+
+	if (Dist2D <= AcceptanceRadius)
+	{
+		++PathIndex;
+		if (!FollowPath.IsValidIndex(PathIndex))
 		{
-			AddMovementInput(ShouldMoveDirection.GetSafeNormal());
+			bFollowingPath = false;
 		}
-		else
-		{
-			bShouldMove = false;
-		}
+		return;
 	}
+
+	AddMovementInput(To.GetSafeNormal());
 }
 
 void ACHPlayerCharacter::BeginPlay()
@@ -145,6 +165,74 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 									TEXT("키 바인딩 에러") // 출력할 메시지
 									);
 		}
+	}
+}
+
+void ACHPlayerCharacter::Client_StartFollow_Implementation(const TArray<FVector>& InPath)
+{
+	FollowPath    = InPath;
+	PathIndex     = 0;
+	bFollowingPath= FollowPath.Num() > 0;
+}
+
+void ACHPlayerCharacter::Server_RequestMove_Implementation(const FVector& RawHit)
+{
+	if (UNavigationSystemV1* Nav = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
+	{
+		FNavLocation Goal;
+		bool CanGo = Nav->ProjectPointToNavigation(RawHit, Goal, FVector(300,300,400));
+		if (!CanGo)
+		{
+			GEngine->AddOnScreenDebugMessage(
+						-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+							5.0f, // Duration (화면에 표시될 시간, 초 단위)
+								FColor::Green, // 텍스트 색상
+									TEXT("이동 불가") // 출력할 메시지
+									);
+			return;
+		}
+
+		//
+		UNavigationPath* Path = Nav->FindPathToLocationSynchronously(
+			GetWorld(), GetActorLocation(), Goal.Location);
+		if (!Path || !Path->IsValid())
+		{
+			GEngine->AddOnScreenDebugMessage(
+						-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+							5.0f, // Duration (화면에 표시될 시간, 초 단위)
+								FColor::Green, // 텍스트 색상
+									TEXT("갈 곳 없음") // 출력할 메시지
+									);
+			return;
+		}
+
+		const TArray<FVector>& Pts = Path->PathPoints;
+		if (Pts.Num() == 0)
+		{
+			GEngine->AddOnScreenDebugMessage(
+						-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+							5.0f, // Duration (화면에 표시될 시간, 초 단위)
+								FColor::Green, // 텍스트 색상
+									TEXT("경로 0") // 출력할 메시지
+									);
+			return;
+		}
+
+		//서버 쪽에도 경로/상태 세팅 (자기 자신도 따라가게)
+		FollowPath.Reset();
+		for (int32 i = 1; i < Pts.Num(); ++i) // [0]은 보통 현재 위치 근처
+		{
+			FollowPath.Add(Pts[i]);
+		}
+		if (FollowPath.Num() == 0)
+		{
+			FollowPath.Add(Goal.Location);
+		}
+		PathIndex      = 0;
+		bFollowingPath = true;
+
+		// 클라에도 시작 신호 전달
+		Client_StartFollow(FollowPath);
 	}
 }
 
@@ -381,68 +469,70 @@ void ACHPlayerCharacter::OnRep_ChangebBeReadyToAttack()
 
 void ACHPlayerCharacter::OnClickMove()
 {
-	// if (GEngine)
-	// {
-	// 		GEngine->AddOnScreenDebugMessage(
-	// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-	// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
-	// 						FColor::Green, // 텍스트 색상
-	// 							TEXT("Click") // 출력할 메시지
-	// 							);
-	// 							}
 
-	if (!bTargetAttack)
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		if (bBeReadyToAttack)
-		{
-			return;
-		}
-	}
-	
-	
-	FHitResult Hit;
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC)
-	{
+		if (!PC->IsLocalController()) return;
+
+		FHitResult Hit;
 		PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit);
-	}
+		if (!Hit.bBlockingHit) return;
 
-	//if ()
-	
-	if (Hit.bBlockingHit)
-	{
-		ACHTree* Tree = Cast<ACHTree>(Hit.GetActor());
-		if (Tree)
-		{
-			// if (GEngine)
-			// {
-			// 		GEngine->AddOnScreenDebugMessage(
-			// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-			// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
-			// 						FColor::Green, // 텍스트 색상
-			// 							TEXT("나무 클릭") // 출력할 메시지
-			// 							);
-			// }
-			ServerRPCAttackTargetEnd_Implementation();
-		}
-		else
-		{
-			ServerRPCAttackTargetEnd();
-		}
-		
-		TargetPoint = Hit.Location;
-		bShouldMove = true;
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this,
-			FXCursor,
-			Hit.Location,
-			FRotator::ZeroRotator,
-			FVector(1.f, 1.f, 1.f),
-			true,
-			true,
-			ENCPoolMethod::None,
-			true);
+		Server_RequestMove(Hit.ImpactPoint); // ★ 투영 없이 좌표만
 	}
+	
+	// if (!bTargetAttack)
+	// {
+	// 	if (bBeReadyToAttack)
+	// 	{
+	// 		return;
+	// 	}
+	// }
+	//
+	//
+	// FHitResult Hit;
+	// APlayerController* PC = Cast<APlayerController>(GetController());
+	// if (PC)
+	// {
+	// 	PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit);
+	// }
+	//
+	// //if ()
+	//
+	// if (Hit.bBlockingHit)
+	// {
+	// 	ACHTree* Tree = Cast<ACHTree>(Hit.GetActor());
+	// 	if (Tree)
+	// 	{
+	// 		// if (GEngine)
+	// 		// {
+	// 		// 		GEngine->AddOnScreenDebugMessage(
+	// 		// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 		// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 		// 						FColor::Green, // 텍스트 색상
+	// 		// 							TEXT("나무 클릭") // 출력할 메시지
+	// 		// 							);
+	// 		// }
+	// 		ServerRPCAttackTargetEnd_Implementation();
+	// 	}
+	// 	else
+	// 	{
+	// 		ServerRPCAttackTargetEnd();
+	// 	}
+	// 	
+	// 	TargetPoint = Hit.Location;
+	// 	bShouldMove = true;
+	// 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+	// 		this,
+	// 		FXCursor,
+	// 		Hit.Location,
+	// 		FRotator::ZeroRotator,
+	// 		FVector(1.f, 1.f, 1.f),
+	// 		true,
+	// 		true,
+	// 		ENCPoolMethod::None,
+	// 		true);
+	// }
 }
 
 void ACHPlayerCharacter::CheckInteract()

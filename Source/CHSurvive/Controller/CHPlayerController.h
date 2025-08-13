@@ -24,6 +24,9 @@ public:
 
 	virtual void BeginPlay();
 
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_PossessShip(APawn* ShipPawn);
+	
 	// /** Time Threshold to know if it was a short press */
 	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	// float ShortPressThreshold;

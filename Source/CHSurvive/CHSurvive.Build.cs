@@ -17,7 +17,8 @@ public class CHSurvive : ModuleRules
 			"InputCore", 
 			"EnhancedInput", 
 			"AIModule",
-			"Niagara"
+			"Niagara",
+			"NavigationSystem", // ← NavMesh, ProjectPointToNavigation 등에 필요
 		});
 		
 

@@ -2,12 +2,8 @@
 
 
 #include "UI/CHInventoryWidget.h"
-
 #include "Components/Image.h"
-#include "Controller/CHPlayerController.h"
-#include "Data/CHInventoryItemImage.h"
 #include "Environment/CHLog.h"
-#include "Game/CHGameInstance.h"
 
 void UCHInventoryWidget::NativeConstruct()
 {
