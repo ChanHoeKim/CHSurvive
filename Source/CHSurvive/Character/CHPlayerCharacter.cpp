@@ -132,40 +132,52 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	// set up gameplay key bindings
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	// Add Input Mapping Context
-	APlayerController* PlayerController = CastChecked<APlayerController>(GetController());
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-	if (Subsystem)
-	{
-		Subsystem->AddMappingContext(DefaultMappingContext, 0);
-	}
+	if (auto* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent)){
+		EIC->BindAction(ClickAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OnClickMove);
+		EIC->BindAction(SprintAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::Sprint);
+		EIC->BindAction(SprintAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::SprintEnd);
+		EIC->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Interact);
+		EIC->BindAction(ReadyToAttackAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::ReadyToAttack);
+		EIC->BindAction(ReadyToAttackAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::ReadyToAttackEnd);
+		EIC->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Attack);
 
-	// Set up action bindings
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-
-		EnhancedInputComponent->BindAction(ClickAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OnClickMove);
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::Sprint);
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::SprintEnd);
-		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Interact);
-		EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::ReadyToAttack);
-		EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::ReadyToAttackEnd);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Attack);
-
-		EnhancedInputComponent->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OpenInventory);
+		EIC->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OpenInventory);
 	}
-	else
-	{
-		if (GEngine)
-		{
-				GEngine->AddOnScreenDebugMessage(
-						-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-							5.0f, // Duration (화면에 표시될 시간, 초 단위)
-								FColor::Green, // 텍스트 색상
-									TEXT("키 바인딩 에러") // 출력할 메시지
-									);
-		}
-	}
+	
+	// // Add Input Mapping Context
+	// APlayerController* PlayerController = CastChecked<APlayerController>(GetController());
+	// UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+	// if (Subsystem)
+	// {
+	// 	Subsystem->AddMappingContext(DefaultMappingContext, 0);
+	// }
+	//
+	// // Set up action bindings
+	// if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	// {
+	//
+	// 	EnhancedInputComponent->BindAction(ClickAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OnClickMove);
+	// 	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::Sprint);
+	// 	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::SprintEnd);
+	// 	EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Interact);
+	// 	EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::ReadyToAttack);
+	// 	EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::ReadyToAttackEnd);
+	// 	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Attack);
+	//
+	// 	EnhancedInputComponent->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OpenInventory);
+	// }
+	// else
+	// {
+	// 	if (GEngine)
+	// 	{
+	// 			GEngine->AddOnScreenDebugMessage(
+	// 					-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+	// 						5.0f, // Duration (화면에 표시될 시간, 초 단위)
+	// 							FColor::Green, // 텍스트 색상
+	// 								TEXT("키 바인딩 에러") // 출력할 메시지
+	// 								);
+	// 	}
+	// }
 }
 
 void ACHPlayerCharacter::Client_StartFollow_Implementation(const TArray<FVector>& InPath)
@@ -481,58 +493,6 @@ void ACHPlayerCharacter::OnClickMove()
 		Server_RequestMove(Hit.ImpactPoint); // ★ 투영 없이 좌표만
 	}
 	
-	// if (!bTargetAttack)
-	// {
-	// 	if (bBeReadyToAttack)
-	// 	{
-	// 		return;
-	// 	}
-	// }
-	//
-	//
-	// FHitResult Hit;
-	// APlayerController* PC = Cast<APlayerController>(GetController());
-	// if (PC)
-	// {
-	// 	PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit);
-	// }
-	//
-	// //if ()
-	//
-	// if (Hit.bBlockingHit)
-	// {
-	// 	ACHTree* Tree = Cast<ACHTree>(Hit.GetActor());
-	// 	if (Tree)
-	// 	{
-	// 		// if (GEngine)
-	// 		// {
-	// 		// 		GEngine->AddOnScreenDebugMessage(
-	// 		// 				-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-	// 		// 					5.0f, // Duration (화면에 표시될 시간, 초 단위)
-	// 		// 						FColor::Green, // 텍스트 색상
-	// 		// 							TEXT("나무 클릭") // 출력할 메시지
-	// 		// 							);
-	// 		// }
-	// 		ServerRPCAttackTargetEnd_Implementation();
-	// 	}
-	// 	else
-	// 	{
-	// 		ServerRPCAttackTargetEnd();
-	// 	}
-	// 	
-	// 	TargetPoint = Hit.Location;
-	// 	bShouldMove = true;
-	// 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-	// 		this,
-	// 		FXCursor,
-	// 		Hit.Location,
-	// 		FRotator::ZeroRotator,
-	// 		FVector(1.f, 1.f, 1.f),
-	// 		true,
-	// 		true,
-	// 		ENCPoolMethod::None,
-	// 		true);
-	// }
 }
 
 void ACHPlayerCharacter::CheckInteract()
@@ -657,7 +617,7 @@ void ACHPlayerCharacter::Sprint()
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	if (Movement)
 	{
-		ServerRPCChangeCharacterMaxWalkSpeed(2000.f);
+		ServerRPCChangeCharacterMaxWalkSpeed(1000.f);
 	}
 }
 
