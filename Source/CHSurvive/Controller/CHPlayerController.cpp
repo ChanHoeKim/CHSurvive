@@ -53,38 +53,18 @@ void ACHPlayerController::ApplyImcForPawn(APawn* InPawn)
 		{
 			// 깔끔하게 모두 비우고 현재 Pawn 타입에 맞는 IMC만 추가
 			Sub->ClearAllMappings();
+			
+			if (DefaultMappingContext)
+				Sub->AddMappingContext(DefaultMappingContext, /*Priority*/100);
 
-			const bool bIsShip = (InPawn && InPawn->IsA(ACHShip::StaticClass()));
-
-			if (bIsShip)
+			if (GEngine)
 			{
-				if (ShipIMC)
-					Sub->AddMappingContext(ShipIMC, /*Priority*/100);
-
-				if (GEngine)
-				{
-					GEngine->AddOnScreenDebugMessage(
-							-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-								5.0f, // Duration (화면에 표시될 시간, 초 단위)
-									FColor::Green, // 텍스트 색상
-										TEXT("ShipIMC") // 출력할 메시지
-										);
-				}
-			}
-			else
-			{
-				if (DefaultMappingContext)
-					Sub->AddMappingContext(DefaultMappingContext, /*Priority*/100);
-
-				if (GEngine)
-				{
-					GEngine->AddOnScreenDebugMessage(
-							-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-								5.0f, // Duration (화면에 표시될 시간, 초 단위)
-									FColor::Green, // 텍스트 색상
-										TEXT("DefaultMappingContext") // 출력할 메시지
-										);
-				}
+				GEngine->AddOnScreenDebugMessage(
+						-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
+							5.0f, // Duration (화면에 표시될 시간, 초 단위)
+								FColor::Green, // 텍스트 색상
+									TEXT("DefaultMappingContext") // 출력할 메시지
+									);
 			}
 		}
 }
@@ -99,33 +79,3 @@ void ACHPlayerController::OnPossess(APawn* InPawn)
 		SetViewTargetWithBlend(InPawn, 0.2f);
 	}
 }
-
-void ACHPlayerController::ServerRPC_PossessShip_Implementation(APawn* ShipPawn)
-{
-	if (!ShipPawn) return;
-
-	if (ShipPawn->GetController() && ShipPawn->GetController() != this)
-	{
-		ShipPawn->GetController()->UnPossess();
-	}
-
-	if (GetPawn())
-		UnPossess();
-
-	Possess(ShipPawn);
-}
-
-
-// void ACHPlayerController::OnSetDestinationReleased()
-// {
-// 	// If it was a short press
-// 	if (FollowTime <= ShortPressThreshold)
-// 	{
-// 		// We move there and spawn some particles
-// 		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, CachedDestination);
-// 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FXCursor, CachedDestination, FRotator::ZeroRotator, FVector(1.f, 1.f, 1.f), true, true, ENCPoolMethod::None, true);
-// 	}
-//
-// 	FollowTime = 0.f;
-// }
-

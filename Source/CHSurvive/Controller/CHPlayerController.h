@@ -24,18 +24,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	TObjectPtr<class UInputMappingContext> DefaultMappingContext;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	TObjectPtr<class UInputMappingContext> ShipIMC;
 	
 	virtual void BeginPlay() override;
 	void ApplyImcForPawn(APawn* InPawn);
 	virtual void OnPossess(APawn* InPawn) override;
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_PossessShip(APawn* ShipPawn);
-	
-	
+	// UFUNCTION(Server, Reliable)
+	// void ServerRPC_PossessShip(APawn* ShipPawn);
+	//
+	//
 };
 
 

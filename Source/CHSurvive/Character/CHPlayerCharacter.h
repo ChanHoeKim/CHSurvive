@@ -81,7 +81,7 @@ protected:
 	UPROPERTY()
 	TArray<FVector> FollowPath;
 
-	bool bFollowingPath = false;
+	
 	int32 PathIndex = 0;
 	
 	void OnClickMove();
@@ -90,7 +90,8 @@ protected:
 	void Interact();
 	UFUNCTION(Server, Reliable)
 	void ServerInteract();
-
+	
+	bool bFollowingPath = false;
 	
 	
 	void ReadyToAttack();
@@ -127,7 +128,9 @@ private:
 	TObjectPtr<UCHCombatComponent> CombatComponent;
 	
 public:
-
+	UFUNCTION(Client, Unreliable)
+	void StopMove();
+	
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_Interact(ACHLog* InLog);
 	

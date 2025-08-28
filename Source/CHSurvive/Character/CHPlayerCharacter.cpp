@@ -143,41 +143,6 @@ void ACHPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		EIC->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OpenInventory);
 	}
-	
-	// // Add Input Mapping Context
-	// APlayerController* PlayerController = CastChecked<APlayerController>(GetController());
-	// UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-	// if (Subsystem)
-	// {
-	// 	Subsystem->AddMappingContext(DefaultMappingContext, 0);
-	// }
-	//
-	// // Set up action bindings
-	// if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	// {
-	//
-	// 	EnhancedInputComponent->BindAction(ClickAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OnClickMove);
-	// 	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::Sprint);
-	// 	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::SprintEnd);
-	// 	EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Interact);
-	// 	EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Started, this, &ACHPlayerCharacter::ReadyToAttack);
-	// 	EnhancedInputComponent->BindAction(ReadyToAttackAction, ETriggerEvent::Completed, this, &ACHPlayerCharacter::ReadyToAttackEnd);
-	// 	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::Attack);
-	//
-	// 	EnhancedInputComponent->BindAction(OpenInventoryAction, ETriggerEvent::Triggered, this, &ACHPlayerCharacter::OpenInventory);
-	// }
-	// else
-	// {
-	// 	if (GEngine)
-	// 	{
-	// 			GEngine->AddOnScreenDebugMessage(
-	// 					-1, // Key (고유 ID, -1이면 자동으로 갱신됨)
-	// 						5.0f, // Duration (화면에 표시될 시간, 초 단위)
-	// 							FColor::Green, // 텍스트 색상
-	// 								TEXT("키 바인딩 에러") // 출력할 메시지
-	// 								);
-	// 	}
-	// }
 }
 
 void ACHPlayerCharacter::Client_StartFollow_Implementation(const TArray<FVector>& InPath)
@@ -556,7 +521,11 @@ void ACHPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 	DOREPLIFETIME(ThisClass, bBeReadyToAttack);
 }
 
-
+void ACHPlayerCharacter::StopMove_Implementation()
+{
+	bFollowingPath = false;
+	FollowPath.Empty();
+}
 
 
 void ACHPlayerCharacter::OnRep_ChangeWeaponType()
